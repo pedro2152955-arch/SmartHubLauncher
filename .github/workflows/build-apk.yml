@@ -31,20 +31,12 @@ jobs:
         run: |
           sdkmanager "platforms;android-35" "build-tools;35.0.0"
 
-      - name: Extrair projeto V7.1
-        shell: bash
-        run: |
-          rm -rf projeto
-          mkdir -p projeto
-          unzip -q SmartHubLauncher_V7_1_PremiumIntegrada.zip -d projeto
-
       - name: Preparar Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
 
       - name: Compilar APK
-        working-directory: projeto
         shell: bash
         run: |
           gradle assembleDebug --no-daemon
@@ -52,6 +44,6 @@ jobs:
       - name: Disponibilizar APK
         uses: actions/upload-artifact@v4
         with:
-          name: Smart-Hub-V7-1-APK
-          path: projeto/app/build/outputs/apk/debug/app-debug.apk
+          name: Smart-Hub-V7-2-APK
+          path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
