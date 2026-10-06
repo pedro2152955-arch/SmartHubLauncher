@@ -31,6 +31,88 @@ jobs:
         run: |
           sdkmanager "platforms;android-35" "build-tools;35.0.0"
 
+      - name: Preparar projeto Smart Hub V7.2
+        shell: bash
+        run: |
+          set -e
+
+          echo "Arquivos encontrados no repositório:"
+          ls -la
+
+          rm -rf projeto
+          mkdir -p projeto
+
+          ZIP="SmartHubLauncher_V7_2_PremiumCorrigida.zip"
+
+          if [ -f "$ZIP" ]; then
+            echo "Encontrado: $ZIP"
+            unzip -q "$ZIP" -d projeto
+          else
+            echo "ZIP V7.2 não encontrado."
+            echo "Procurando arquivos ZIP SmartHubLauncher..."
+
+            FOUND_ZIP=$(find . -maxdepth 2 -type f -iname "*SmartHubLauncher*.zip" | head -n 1 || true)
+
+            if [ -n "$FOUND_ZIP" ]; then
+              echo "ZIP encontrado: $FOUND_ZIP"
+              unzip -q "$FOUND_ZIP" -d projeto
+            else
+              echo "Nenhum ZIP SmartHubLauncher encontrado."
+              exit 1
+            fi
+          fi
+
+          echo ""
+          echo "Conteúdo inicial de projeto:"
+          find projeto -maxdepth 2 -type f | sort
+
+          echo ""
+          echo "Procurando a raiz real do Gradle..."
+
+          GRADLE_ROOT=$(find projeto -type f \( -name "settings.gradle" -o -name "settings.gradle.kts" \) -print -quit | xargs -r dirname)
+
+          if [ -z "$GRADLE_ROOT" ]; then
+            echo "Não foi possível encontrar settings.gradle ou settings.gradle.kts."
+            echo "Estrutura encontrada:"
+            find projeto -maxdepth 5 -type f | sort
+            exit 1
+          fi
+
+          echo "Raiz Gradle encontrada em:"
+          echo "$GRADLE_ROOT"
+
+          echo "$GRADLE_ROOT" > gradle-root.txt
+
+      - name: Verificar projeto Gradle
+        shell: bash
+        run: |
+          set -e
+
+          GRADLE_ROOT=$(cat gradle-root.txt)
+
+          echo "Verificando:"
+          echo "$GRADLE_ROOT"
+
+          if [ ! -f "$GRADLE_ROOT/settings.gradle" ] && [ ! -f "$GRADLE_ROOT/settings.gradle.kts" ]; then
+            echo "ERRO: settings.gradle não encontrado."
+            exit 1
+          fi
+
+          if [ ! -f "$GRADLE_ROOT/build.gradle" ] && [ ! -f "$GRADLE_ROOT/build.gradle.kts" ]; then
+            echo "ERRO: build.gradle não encontrado."
+            exit 1
+          fi
+
+          if [ ! -d "$GRADLE_ROOT/app" ]; then
+            echo "ERRO: pasta app não encontrada."
+            exit 1
+          fi
+
+          echo "Projeto Gradle encontrado corretamente."
+          echo ""
+          echo "Arquivos principais:"
+          ls -la "$GRADLE_ROOT"
+
       - name: Preparar Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
@@ -39,11 +121,40 @@ jobs:
       - name: Compilar APK
         shell: bash
         run: |
+          set -e
+
+          GRADLE_ROOT=$(cat gradle-root.txt)
+
+          echo "Compilando projeto em:"
+          echo "$GRADLE_ROOT"
+
+          cd "$GRADLE_ROOT"
+
           gradle assembleDebug --no-daemon
+
+      - name: Verificar APK gerado
+        shell: bash
+        run: |
+          set -e
+
+          GRADLE_ROOT=$(cat gradle-root.txt)
+
+          APK="$GRADLE_ROOT/app/build/outputs/apk/debug/app-debug.apk"
+
+          if [ ! -f "$APK" ]; then
+            echo "ERRO: APK não foi encontrado."
+            echo ""
+            echo "Procurando APKs disponíveis:"
+            find "$GRADLE_ROOT" -type f -name "*.apk" -print || true
+            exit 1
+          fi
+
+          echo "APK encontrado com sucesso:"
+          ls -lh "$APK"
 
       - name: Disponibilizar APK
         uses: actions/upload-artifact@v4
         with:
           name: Smart-Hub-V7-2-APK
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: '**/app/build/outputs/apk/debug/app-debug.apk'
           if-no-files-found: error
