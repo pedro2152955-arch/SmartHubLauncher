@@ -31,34 +31,45 @@ jobs:
         run: |
           sdkmanager "platforms;android-35" "build-tools;35.0.0"
 
-      - name: Preparar projeto V7.3
+      - name: Preparar projeto Smart Hub V7.4
         shell: bash
         run: |
           rm -rf projeto
           mkdir -p projeto
 
-          if [ -f "SmartHubLauncher_V7_3_PremiumCorrigida.zip" ]; then
-            echo "Encontrado ZIP do Smart Hub V7.3"
-            unzip -q "SmartHubLauncher_V7_3_PremiumCorrigida.zip" -d projeto
+          if [ -f "build.gradle" ] || [ -f "build.gradle.kts" ]; then
+            echo "Projeto Gradle encontrado na raiz."
+            cp -R . projeto/
+          elif [ -f "SmartHubLauncher_V7_4_PremiumCinema.zip" ]; then
+            echo "Encontrado ZIP do Smart Hub V7.4."
+            unzip -q "SmartHubLauncher_V7_4_PremiumCinema.zip" -d projeto
           else
-            echo "ERRO: SmartHubLauncher_V7_3_PremiumCorrigida.zip não foi encontrado."
-            echo "Arquivos disponíveis no repositório:"
+            echo "ERRO: projeto V7.4 não encontrado."
+            echo "Arquivos disponíveis:"
             find . -maxdepth 2 -type f | sort
             exit 1
           fi
 
-          echo "Estrutura do projeto:"
-          find projeto -maxdepth 3 -type f | sort
+          echo "Procurando build.gradle..."
+          find projeto -name "build.gradle" -o -name "build.gradle.kts"
 
-          if [ ! -f "projeto/build.gradle" ]; then
-            echo "ERRO: build.gradle não encontrado após extrair o V7.3."
+          GRADLE_FILE=$(find projeto -maxdepth 3 \( -name "build.gradle" -o -name "build.gradle.kts" \) | head -n 1)
+
+          if [ -z "$GRADLE_FILE" ]; then
+            echo "ERRO: nenhum arquivo Gradle encontrado."
             exit 1
           fi
 
-          if [ ! -f "projeto/settings.gradle" ]; then
-            echo "ERRO: settings.gradle não encontrado após extrair o V7.3."
+          GRADLE_DIR=$(dirname "$GRADLE_FILE")
+
+          echo "Projeto Gradle encontrado em: $GRADLE_DIR"
+
+          if [ ! -f "$GRADLE_DIR/settings.gradle" ] && [ ! -f "$GRADLE_DIR/settings.gradle.kts" ]; then
+            echo "ERRO: settings.gradle não encontrado."
             exit 1
           fi
+
+          echo "Preparação concluída."
 
       - name: Preparar Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -66,14 +77,26 @@ jobs:
           gradle-version: '8.9'
 
       - name: Compilar APK
-        working-directory: projeto
         shell: bash
         run: |
+          GRADLE_FILE=$(find projeto -maxdepth 3 \( -name "build.gradle" -o -name "build.gradle.kts" \) | head -n 1)
+          GRADLE_DIR=$(dirname "$GRADLE_FILE")
+
+          echo "Compilando em: $GRADLE_DIR"
+
+          cd "$GRADLE_DIR"
+
           gradle assembleDebug --no-daemon
+
+      - name: Localizar APK
+        shell: bash
+        run: |
+          echo "Procurando APK..."
+          find projeto -type f -name "*.apk" -print
 
       - name: Disponibilizar APK
         uses: actions/upload-artifact@v4
         with:
-          name: Smart-Hub-V7-3-APK
-          path: projeto/app/build/outputs/apk/debug/app-debug.apk
+          name: Smart-Hub-V7-4-APK
+          path: projeto/**/build/outputs/apk/debug/*.apk
           if-no-files-found: error
