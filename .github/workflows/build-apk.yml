@@ -31,12 +31,42 @@ jobs:
         run: |
           sdkmanager "platforms;android-35" "build-tools;35.0.0"
 
+      - name: Preparar projeto V7.3
+        shell: bash
+        run: |
+          rm -rf projeto
+          mkdir -p projeto
+
+          if [ -f "SmartHubLauncher_V7_3_PremiumCorrigida.zip" ]; then
+            echo "Encontrado ZIP do Smart Hub V7.3"
+            unzip -q "SmartHubLauncher_V7_3_PremiumCorrigida.zip" -d projeto
+          else
+            echo "ERRO: SmartHubLauncher_V7_3_PremiumCorrigida.zip não foi encontrado."
+            echo "Arquivos disponíveis no repositório:"
+            find . -maxdepth 2 -type f | sort
+            exit 1
+          fi
+
+          echo "Estrutura do projeto:"
+          find projeto -maxdepth 3 -type f | sort
+
+          if [ ! -f "projeto/build.gradle" ]; then
+            echo "ERRO: build.gradle não encontrado após extrair o V7.3."
+            exit 1
+          fi
+
+          if [ ! -f "projeto/settings.gradle" ]; then
+            echo "ERRO: settings.gradle não encontrado após extrair o V7.3."
+            exit 1
+          fi
+
       - name: Preparar Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
 
       - name: Compilar APK
+        working-directory: projeto
         shell: bash
         run: |
           gradle assembleDebug --no-daemon
@@ -45,5 +75,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Smart-Hub-V7-3-APK
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: projeto/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
