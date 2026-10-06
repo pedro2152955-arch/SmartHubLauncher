@@ -8,6 +8,7 @@ on:
 jobs:
   construir:
     runs-on: ubuntu-latest
+
     steps:
       - name: Baixar projeto
         uses: actions/checkout@v4
@@ -19,12 +20,15 @@ jobs:
           java-version: '17'
 
       - name: Preparar SDK do Android
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
+        with:
+          accept-android-sdk-licenses: true
+          log-accepted-android-sdk-licenses: false
+          packages: platform-tools
 
       - name: Instalar Android SDK 35
         shell: bash
         run: |
-          yes | sdkmanager --licenses > /dev/null || true
           sdkmanager "platforms;android-35" "build-tools;35.0.0"
 
       - name: Extrair projeto V7.1
@@ -41,7 +45,9 @@ jobs:
 
       - name: Compilar APK
         working-directory: projeto
-        run: gradle assembleDebug --no-daemon
+        shell: bash
+        run: |
+          gradle assembleDebug --no-daemon
 
       - name: Disponibilizar APK
         uses: actions/upload-artifact@v4
