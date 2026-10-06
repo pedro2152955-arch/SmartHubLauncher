@@ -31,17 +31,17 @@ jobs:
         run: |
           sdkmanager "platforms;android-35" "build-tools;35.0.0"
 
-      - name: Preparar projeto Smart Hub V7.5
+      - name: Preparar projeto Smart Hub V7.5.1
         shell: bash
         run: |
           rm -rf projeto
           mkdir -p projeto
 
-          if [ -f "SmartHubLauncher_V7_5_AplicativosCorrigidos.zip" ]; then
-            echo "Encontrado Smart Hub V7.5."
-            unzip -q "SmartHubLauncher_V7_5_AplicativosCorrigidos.zip" -d projeto
+          if [ -f "SmartHubLauncher_V7_5_1_AplicativosCorrigidos.zip" ]; then
+            echo "Encontrado Smart Hub V7.5.1."
+            unzip -q "SmartHubLauncher_V7_5_1_AplicativosCorrigidos.zip" -d projeto
           else
-            echo "ERRO: arquivo SmartHubLauncher_V7_5_AplicativosCorrigidos.zip não encontrado."
+            echo "ERRO: arquivo SmartHubLauncher_V7_5_1_AplicativosCorrigidos.zip não encontrado."
             echo "Arquivos encontrados no repositório:"
             find . -maxdepth 2 -type f | sort
             exit 1
@@ -91,6 +91,6 @@ jobs:
       - name: Disponibilizar APK
         uses: actions/upload-artifact@v4
         with:
-          name: Smart-Hub-V7-5-APK
+          name: Smart-Hub-V7-5-1-APK
           path: projeto/**/build/outputs/apk/debug/*.apk
           if-no-files-found: error
